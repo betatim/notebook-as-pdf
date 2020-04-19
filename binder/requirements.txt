@@ -1,0 +1,4 @@
+notebook-as-pdf==0.0.1
+numpy
+matplotlib
+pandas

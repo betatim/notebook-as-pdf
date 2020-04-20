@@ -7,6 +7,10 @@ Three new features compared to the official "save as PDF" extension:
 1. the original notebook is attached to the PDF; and
 1. this extension does not require LaTex.
 
+The created PDF will have as few pages as possible, in many cases only one. This is useful if you are exporting your notebook to a PDF for sharing with others who will view it on a screen.
+
+To make it easier to reproduce the contents of the PDF at a later date the original notebook is attached to the PDF. Not all PDF viewers know how to deal with attachments. This mean you need to use Acrobat Reader or pdf.js to be able to get the attachment from the PDF. Preview for OSX does not know how to display/give you access to PDF attachments.
+
 
 ## Install
 

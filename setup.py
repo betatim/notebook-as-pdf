@@ -21,7 +21,5 @@ setup(
     packages=find_packages(),
     python_requires=">=3.6",
     url="https://github.com/betatim/notebook-as-pdf",
-    entry_points={
-        "nbconvert.exporters": ["PDF via HTML = notebook_as_pdf:PDFExporter"]
-    },
+    entry_points={"nbconvert.exporters": ["PDFviaHTML = notebook_as_pdf:PDFExporter"]},
 )

@@ -173,7 +173,6 @@ class PDFExporter(Exporter):
                 ),
             ).result()
             resources["output_extension"] = ".pdf"
-            print(resources)
 
             attach_notebook(
                 pdf_fname,

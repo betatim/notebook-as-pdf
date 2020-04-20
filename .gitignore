@@ -1,0 +1,5 @@
+.ipynb_checkpoints
+build/
+dist/
+notebook_as_pdf.egg-info/
+__pycache__/

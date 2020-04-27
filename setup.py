@@ -19,7 +19,7 @@ setup(
     long_description_content_type="text/markdown",
     name="notebook-as-pdf",
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     url="https://github.com/betatim/notebook-as-pdf",
     entry_points={"nbconvert.exporters": ["PDFviaHTML = notebook_as_pdf:PDFExporter"]},
 )

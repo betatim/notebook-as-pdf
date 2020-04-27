@@ -1,6 +1,6 @@
 # Jupyter Notebooks as PDF
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/betatim/notebook-as-pdf/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/betatim/notebook-as-pdf/0.1.0)
 
 This Jupyter notebook extension allows you to save your notebook as a PDF.
 
@@ -30,6 +30,12 @@ the HTML to PDF conversion.
 Create a notebook and the click "File -> Download As". Click the new menu entry
 called "PDF via HTML". Your notebook will be converted to a PDF on the fly
 and then downloaded.
+
+You can also use it with `nbconvert`:
+```
+jupyter-nbconvert --to PDFviaHTML example.ipynb
+```
+which will create a file called `example.pdf`.
 
 You will have to use Acrobat Reader to see the attachment to your PDF. Preview
 on OSX can not display PDF attachments.

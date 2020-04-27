@@ -10,7 +10,7 @@ with open(os.path.join(HERE, "README.md"), encoding="utf8") as f:
 setup(
     author="Tim Head",
     author_email="betatim@gmail.com",
-    version="0.0.2",
+    version="0.1.0",
     description="Jupyter extension to export notebooks as PDFs",
     install_requires=["nbconvert", "pyppeteer", "pikepdf"],
     keywords="jupyter pdf export bundler",

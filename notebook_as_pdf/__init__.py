@@ -2,19 +2,19 @@
 Export a notebook to a one page PDF
 """
 import asyncio
-import json
 import os
 import tempfile
 
 import concurrent.futures
 
+import nbformat
 import nbconvert
 
 from pyppeteer import launch
 
 from traitlets import default
 
-import pikepdf
+import PyPDF2
 
 from nbconvert.exporters import Exporter
 
@@ -84,29 +84,12 @@ async def html_to_pdf(html_file, pdf_file):
 
 
 def attach_notebook(pdf_in, pdf_out, notebook):
-    N = pikepdf.Name
+    pdf = PyPDF2.PdfFileWriter()
+    pdf.appendPagesFromReader(PyPDF2.PdfFileReader(pdf_in, "rb"))
+    pdf.addAttachment(notebook["file_name"], notebook["contents"])
 
-    main_pdf = pikepdf.open(pdf_in)
-
-    the_file = pikepdf.Stream(main_pdf, notebook["contents"])
-    the_file[N("/Type")] = N("/EmbeddedFile")
-
-    file_wrapper = pikepdf.Dictionary(F=the_file)
-
-    fname = notebook["file_name"]
-    embedded_file = pikepdf.Dictionary(
-        Type=N("/Filespec"), UF=fname, F=fname, EF=file_wrapper
-    )
-
-    name_tree = pikepdf.Array([pikepdf.String(fname), embedded_file])
-
-    embedded_files = pikepdf.Dictionary(Names=name_tree)
-
-    names = pikepdf.Dictionary(EmbeddedFiles=embedded_files)
-
-    main_pdf.Root[N("/Names")] = names
-
-    main_pdf.save(pdf_out)
+    with open(pdf_out, "wb") as fp:
+        pdf.write(fp)
 
 
 async def notebook_to_pdf(notebook, pdf_path, config=None, resources=None, **kwargs):
@@ -179,7 +162,7 @@ class PDFExporter(Exporter):
                 pdf_fname2,
                 {
                     "file_name": f"{resources['metadata']['name']}.ipynb",
-                    "contents": json.dumps(notebook, indent=None).encode(),
+                    "contents": nbformat.writes(notebook).encode("utf-8"),
                 },
             )
 

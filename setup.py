@@ -12,7 +12,7 @@ setup(
     author_email="betatim@gmail.com",
     version="0.1.0",
     description="Jupyter extension to export notebooks as PDFs",
-    install_requires=["nbconvert", "pyppeteer", "pikepdf"],
+    install_requires=["nbconvert", "pyppeteer", "PyPDF2"],
     keywords="jupyter pdf export bundler",
     license="BSD3",
     long_description=readme,

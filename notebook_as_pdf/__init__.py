@@ -21,7 +21,12 @@ from nbconvert.exporters import Exporter
 
 async def html_to_pdf(html_file, pdf_file):
     """Convert a HTML file to a PDF"""
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False)
+    browser = await launch(
+        handleSIGINT=False,
+        handleSIGTERM=False,
+        handleSIGHUP=False,
+        args=["--no-sandbox"],
+    )
     page = await browser.newPage()
     await page.setViewport(dict(width=994, height=768))
     await page.emulateMedia("screen")

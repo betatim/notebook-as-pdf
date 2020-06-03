@@ -12,16 +12,21 @@ import nbconvert
 
 from pyppeteer import launch
 
-from traitlets import default
+from traitlets import Bool, default
 
 import PyPDF2
 
 from nbconvert.exporters import Exporter
 
 
-async def html_to_pdf(html_file, pdf_file):
+async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
     """Convert a HTML file to a PDF"""
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False)
+    browser = await launch(
+        handleSIGINT=False,
+        handleSIGTERM=False,
+        handleSIGHUP=False,
+        args=pyppeteer_args or [],
+    )
     page = await browser.newPage()
     await page.setViewport(dict(width=994, height=768))
     await page.emulateMedia("screen")
@@ -92,7 +97,13 @@ def attach_notebook(pdf_in, pdf_out, notebook):
         pdf.write(fp)
 
 
-async def notebook_to_pdf(notebook, pdf_path, config=None, resources=None, **kwargs):
+async def notebook_to_pdf(
+    notebook,
+    pdf_path,
+    config=None,
+    resources=None,
+    pyppeteer_args=None,
+    **kwargs):
     """Convert a notebook to PDF"""
     if config is None:
         config = {}
@@ -104,7 +115,7 @@ async def notebook_to_pdf(notebook, pdf_path, config=None, resources=None, **kwa
     with tempfile.NamedTemporaryFile(suffix=".html") as f:
         f.write(exported_html.encode())
         f.flush()
-        await html_to_pdf(f.name, pdf_path)
+        await html_to_pdf(f.name, pdf_path, pyppeteer_args)
 
 
 class PDFExporter(Exporter):
@@ -120,6 +131,13 @@ class PDFExporter(Exporter):
 
     export_from_notebook = "PDF via HTML"
     output_mimetype = "application/pdf"
+    no_sandbox = Bool(
+        False,
+        help=(
+            "Whether to disable chrome sandboxing (not recommended, "
+            "but may be necessary if running as root)"
+        ),
+    ).tag(config=True)
 
     @default("file_extension")
     def _file_extension_default(self):
@@ -144,6 +162,7 @@ class PDFExporter(Exporter):
         with tempfile.TemporaryDirectory(suffix="nb-as-pdf") as name:
             pdf_fname = os.path.join(name, "output.pdf")
             pdf_fname2 = os.path.join(name, "output-with-attachment.pdf")
+            pyppeteer_args = ["--no-sandbox"] if self.no_sandbox else None
 
             self.pool.submit(
                 asyncio.run,
@@ -152,6 +171,7 @@ class PDFExporter(Exporter):
                     pdf_fname,
                     config=self.config,
                     resources=resources,
+                    pyppeteer_args=pyppeteer_args,
                     **kwargs,
                 ),
             ).result()

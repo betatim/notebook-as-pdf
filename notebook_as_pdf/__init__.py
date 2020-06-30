@@ -103,7 +103,8 @@ async def notebook_to_pdf(
     config=None,
     resources=None,
     pyppeteer_args=None,
-    **kwargs):
+    **kwargs,
+):
     """Convert a notebook to PDF"""
     if config is None:
         config = {}
@@ -131,13 +132,9 @@ class PDFExporter(Exporter):
 
     export_from_notebook = "PDF via HTML"
     output_mimetype = "application/pdf"
-    no_sandbox = Bool(
-        False,
-        help=(
-            "Whether to disable chrome sandboxing (not recommended, "
-            "but may be necessary if running as root)"
-        ),
-    ).tag(config=True)
+    no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(
+        config=True
+    )
 
     @default("file_extension")
     def _file_extension_default(self):

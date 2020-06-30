@@ -11,18 +11,21 @@ Three new features compared to the official "save as PDF" extension:
 
 The created PDF will have as few pages as possible, in many cases only one. This is useful if you are exporting your notebook to a PDF for sharing with others who will view it on a screen.
 
-To make it easier to reproduce the contents of the PDF at a later date the original notebook is attached to the PDF. Not all PDF viewers know how to deal with attachments. This mean you need to use Acrobat Reader or pdf.js to be able to get the attachment from the PDF. Preview for OSX does not know how to display/give you access to PDF attachments.
+To make it easier to reproduce the contents of the PDF at a later date the original notebook is attached to the PDF. Unfortunately not all PDF viewers know how to deal with attachments. PDF viewers known to support downloading of file attachments are: Acrobat Reader, pdf.js and evince. The `pdftk` CLI program can also extract attached files from a PDF. Preview for OSX does not know how to display/give you access to attachments of PDF files.
 
 
 ## Install
 
 To use this bundler you need to install it:
 ```
-python -m pip install notebook-as-pdf
+python -m pip install -U notebook-as-pdf
 pyppeteer-install
 ```
 The second command will download and setup Chromium. It is used to perform
 the HTML to PDF conversion.
+
+On linux you probably also need to install some or all of the APT packages
+listed in [`binder/apt.txt`](binder/apt.txt).
 
 
 ## Use it

@@ -10,7 +10,7 @@ with open(os.path.join(HERE, "README.md"), encoding="utf8") as f:
 setup(
     author="Tim Head",
     author_email="betatim@gmail.com",
-    version="0.1.0",
+    version="0.3.0",
     description="Jupyter extension to export notebooks as PDFs",
     install_requires=["nbconvert", "pyppeteer", "PyPDF2"],
     keywords="jupyter pdf export bundler",
@@ -21,5 +21,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.7",
     url="https://github.com/betatim/notebook-as-pdf",
-    entry_points={"nbconvert.exporters": ["PDFviaHTML = notebook_as_pdf:PDFExporter"]},
+    entry_points={
+        "nbconvert.exporters": ["PDFviaHTML = notebook_as_pdf:PDFExporter"]
+    },
 )

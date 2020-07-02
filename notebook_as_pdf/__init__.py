@@ -89,17 +89,6 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
         }
     )
 
-    h1s = await page.evaluate(
-        """() => {
-        var vals = []
-        for (const elem of document.getElementsByTagName("h1")) {
-            //console.log(elem, getOffset(elem).top, elem.innerText)
-            vals.push({ top: getOffset(elem).top, text: elem.innerText })
-        }
-        return vals
-    }"""
-    )
-
     await page.pdf(
         {
             "path": pdf_file,
@@ -110,6 +99,16 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
             "printBackground": True,
             "margin": page_margins,
         }
+    )
+
+    h1s = await page.evaluate(
+        """() => {
+        var vals = []
+        for (const elem of document.getElementsByTagName("h1")) {
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: elem.innerText })
+        }
+        return vals
+    }"""
     )
 
     await browser.close()
@@ -130,14 +129,14 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
     pdf.addAttachment(notebook["file_name"], notebook["contents"])
 
     for heading in headings:
-        page_num = heading["top"] // (200 * 72)
+        page_num = int(heading["top"]) // (200 * 72)
 
         page_height = pdf.getPage(page_num).artBox[-1]
 
         # position on the page as measured from the bottom of the page
         # with a bit of leeway so that clicking the bookmark doesn't put
         # the heading right at the border
-        on_page_pos = page_height - (heading["top"] % (200 * 72)) + 20
+        on_page_pos = page_height - (int(heading["top"]) % (200 * 72)) + 20
 
         # there is no nice way of passing the "zoom arguments" at the very
         # end of the function call without explicitly listing all the parameters

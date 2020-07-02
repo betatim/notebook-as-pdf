@@ -1,4 +1,4 @@
-notebook-as-pdf
+notebook-as-pdf==0.3.0
 numpy
 matplotlib
 pandas

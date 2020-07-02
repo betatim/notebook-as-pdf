@@ -53,6 +53,22 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
     width = dimensions["width"]
     height = dimensions["height"]
 
+    await page.evaluate(
+        """
+    function getOffset( el ) {
+        var _x = 0;
+        var _y = 0;
+        while( el && !isNaN( el.offsetLeft ) && !isNaN( el.offsetTop ) ) {
+            _x += el.offsetLeft - el.scrollLeft;
+            _y += el.offsetTop - el.scrollTop;
+            el = el.offsetParent;
+        }
+        return { top: _y, left: _x };
+        }
+    """,
+        force_expr=True,
+    )
+
     await page.addStyleTag(
         {
             "content": """
@@ -73,6 +89,17 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
         }
     )
 
+    h1s = await page.evaluate(
+        """() => {
+        var vals = []
+        for (const elem of document.getElementsByTagName("h1")) {
+            //console.log(elem, getOffset(elem).top, elem.innerText)
+            vals.push({ top: getOffset(elem).top, text: elem.innerText })
+        }
+        return vals
+    }"""
+    )
+
     await page.pdf(
         {
             "path": pdf_file,
@@ -87,11 +114,46 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
 
     await browser.close()
 
+    return h1s
 
-def attach_notebook(pdf_in, pdf_out, notebook):
+
+def finish_pdf(pdf_in, pdf_out, notebook, headings):
+    """Add finishing touches to the PDF file.
+
+    To make the PDF nicer we:
+
+    * attach the original notebook to the PDF for reference
+    * add bookmarks pointing to the headers in a notebook
+    """
     pdf = PyPDF2.PdfFileWriter()
     pdf.appendPagesFromReader(PyPDF2.PdfFileReader(pdf_in, "rb"))
     pdf.addAttachment(notebook["file_name"], notebook["contents"])
+
+    for heading in headings:
+        page_num = heading["top"] // (200 * 72)
+
+        page_height = pdf.getPage(page_num).artBox[-1]
+
+        # position on the page as measured from the bottom of the page
+        # with a bit of leeway so that clicking the bookmark doesn't put
+        # the heading right at the border
+        on_page_pos = page_height - (heading["top"] % (200 * 72)) + 20
+
+        # there is no nice way of passing the "zoom arguments" at the very
+        # end of the function call without explicitly listing all the parameters
+        # of the function. We can't use keyword arguments :(
+        pdf.addBookmark(
+            heading["text"],
+            page_num,
+            None,
+            None,
+            False,
+            False,
+            "/XYZ",
+            0,
+            on_page_pos,
+            None,
+        )
 
     with open(pdf_out, "wb") as fp:
         pdf.write(fp)
@@ -116,7 +178,9 @@ async def notebook_to_pdf(
     with tempfile.NamedTemporaryFile(suffix=".html") as f:
         f.write(exported_html.encode())
         f.flush()
-        await html_to_pdf(f.name, pdf_path, pyppeteer_args)
+        heading_positions = await html_to_pdf(f.name, pdf_path, pyppeteer_args)
+
+    return heading_positions
 
 
 class PDFExporter(Exporter):
@@ -161,7 +225,7 @@ class PDFExporter(Exporter):
             pdf_fname2 = os.path.join(name, "output-with-attachment.pdf")
             pyppeteer_args = ["--no-sandbox"] if self.no_sandbox else None
 
-            self.pool.submit(
+            heading_positions = self.pool.submit(
                 asyncio.run,
                 notebook_to_pdf(
                     notebook,
@@ -174,13 +238,14 @@ class PDFExporter(Exporter):
             ).result()
             resources["output_extension"] = ".pdf"
 
-            attach_notebook(
+            finish_pdf(
                 pdf_fname,
                 pdf_fname2,
                 {
                     "file_name": f"{resources['metadata']['name']}.ipynb",
                     "contents": nbformat.writes(notebook).encode("utf-8"),
                 },
+                heading_positions,
             )
 
             with open(pdf_fname2, "rb") as f:

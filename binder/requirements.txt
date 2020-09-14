@@ -2,3 +2,4 @@ notebook-as-pdf==0.3.1
 numpy
 matplotlib
 pandas
+nbconvert>=6.0.2

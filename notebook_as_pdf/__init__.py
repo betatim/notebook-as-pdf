@@ -16,7 +16,7 @@ from traitlets import Bool, default
 
 import PyPDF2
 
-from nbconvert.exporters import Exporter
+from nbconvert.exporters import HTMLExporter
 
 
 async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
@@ -159,30 +159,20 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
 
 
 async def notebook_to_pdf(
-    notebook,
+    html_notebook,
     pdf_path,
-    config=None,
-    resources=None,
     pyppeteer_args=None,
-    **kwargs,
 ):
-    """Convert a notebook to PDF"""
-    if config is None:
-        config = {}
-    exporter = nbconvert.HTMLExporter(config=config)
-    exported_html, _ = exporter.from_notebook_node(
-        notebook, resources=resources, **kwargs
-    )
-
+    """Convert HTML representation of a notebook to PDF"""
     with tempfile.NamedTemporaryFile(suffix=".html") as f:
-        f.write(exported_html.encode())
+        f.write(html_notebook.encode())
         f.flush()
         heading_positions = await html_to_pdf(f.name, pdf_path, pyppeteer_args)
 
     return heading_positions
 
 
-class PDFExporter(Exporter):
+class PDFExporter(HTMLExporter):
     """Convert a notebook to a PDF
 
     Expose this package's functionality to nbconvert
@@ -211,7 +201,7 @@ class PDFExporter(Exporter):
         super().__init__(config=with_default_config, **kw)
 
     def from_notebook_node(self, notebook, resources=None, **kwargs):
-        notebook, resources = super().from_notebook_node(
+        html_notebook, resources = super().from_notebook_node(
             notebook, resources=resources, **kwargs
         )
 
@@ -227,12 +217,9 @@ class PDFExporter(Exporter):
             heading_positions = self.pool.submit(
                 asyncio.run,
                 notebook_to_pdf(
-                    notebook,
+                    html_notebook,
                     pdf_fname,
-                    config=self.config,
-                    resources=resources,
                     pyppeteer_args=pyppeteer_args,
-                    **kwargs,
                 ),
             ).result()
             resources["output_extension"] = ".pdf"

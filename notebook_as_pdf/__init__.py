@@ -101,11 +101,14 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
         }
     )
 
-    h1s = await page.evaluate(
+    headings = await page.evaluate(
         """() => {
         var vals = []
         for (const elem of document.getElementsByTagName("h1")) {
             vals.push({ top: getOffset(elem).top * (1-72/288), text: elem.innerText })
+        }
+        for (const elem of document.getElementsByTagName("h2")) {
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "∙ " + elem.innerText })
         }
         return vals
     }"""
@@ -113,7 +116,7 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
 
     await browser.close()
 
-    return h1s
+    return headings
 
 
 def finish_pdf(pdf_in, pdf_out, notebook, headings):
@@ -128,7 +131,7 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
     pdf.appendPagesFromReader(PyPDF2.PdfFileReader(pdf_in, "rb"))
     pdf.addAttachment(notebook["file_name"], notebook["contents"])
 
-    for heading in headings:
+    for heading in sorted(headings, key=lambda x: x["top"]):
         page_num = int(heading["top"]) // (200 * 72)
 
         page_height = pdf.getPage(page_num).artBox[-1]

@@ -38,7 +38,7 @@ and then downloaded.
 
 You can also use it with `nbconvert`:
 ```
-jupyter-nbconvert --to PDFviaHTML example.ipynb
+jupyter-nbconvert --to pdfviahtml example.ipynb
 ```
 which will create a file called `example.pdf`.
 

@@ -17,6 +17,7 @@ from traitlets import Bool, default
 import PyPDF2
 
 from nbconvert.exporters import HTMLExporter
+from nbconvert.exporters import TemplateExporter
 
 
 async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
@@ -188,7 +189,7 @@ async def notebook_to_pdf(
     return heading_positions
 
 
-class PDFExporter(HTMLExporter):
+class PDFExporter(TemplateExporter):
     """Convert a notebook to a PDF
 
     Expose this package's functionality to nbconvert
@@ -210,14 +211,15 @@ class PDFExporter(HTMLExporter):
     # file extension
     template_extension = ".html.j2"
 
-    # XXX This doesn't work yet, we have to use the default value of
-    # text/html as mimetype and set it to application/pdf later
-    # output_mimetype = "application/pdf"
+    # This value is used to inform browsers about the mimetype of the file
+    # when people download the file we generated
+    output_mimetype = "application/pdf"
 
     no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(config=True)
 
     def from_notebook_node(self, notebook, resources=None, **kwargs):
-        html_notebook, resources = super().from_notebook_node(
+        html_exporter = HTMLExporter(config=self.config, parent=self)
+        html_notebook, resources = html_exporter.from_notebook_node(
             notebook, resources=resources, **kwargs
         )
 

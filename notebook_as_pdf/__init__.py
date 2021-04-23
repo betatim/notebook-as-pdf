@@ -17,6 +17,7 @@ from traitlets import Bool, default
 import PyPDF2
 
 from nbconvert.exporters import HTMLExporter
+from nbconvert.exporters import TemplateExporter
 
 
 async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
@@ -45,6 +46,7 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
         return {
             width: document.body.scrollWidth,
             height: document.body.scrollHeight,
+            offsetWidth: document.body.offsetWidth,
             offsetHeight: document.body.offsetHeight,
             deviceScaleFactor: window.devicePixelRatio,
         }
@@ -85,6 +87,20 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
                 div.output {
                     page-break-inside: avoid;
                 }
+                /* Jupyterlab based HTML uses these classes */
+                .jp-Cell-inputWrapper {
+                    page-break-inside: avoid;
+                }
+                .jp-Cell-outputWrapper {
+                    page-break-inside: avoid;
+                }
+                .jp-Notebook {
+                    margin: 0px;
+                }
+                /* Hide the message box used by MathJax */
+                #MathJax_Message {
+                    display: none;
+                }
          """
         }
     )
@@ -92,10 +108,10 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
     await page.pdf(
         {
             "path": pdf_file,
-            "width": width,
             # Adobe can not display pages longer than 200inches. So we limit
             # ourselves to that and start a new page if needed.
-            "height": min(height, 200 * 72),
+            "width": min(width + 2, 200 * 72),
+            "height": min(height + 2, 200 * 72),
             "printBackground": True,
             "margin": page_margins,
         }
@@ -162,9 +178,7 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
 
 
 async def notebook_to_pdf(
-    html_notebook,
-    pdf_path,
-    pyppeteer_args=None,
+    html_notebook, pdf_path, pyppeteer_args=None,
 ):
     """Convert HTML representation of a notebook to PDF"""
     with tempfile.NamedTemporaryFile(suffix=".html") as f:
@@ -175,36 +189,37 @@ async def notebook_to_pdf(
     return heading_positions
 
 
-class PDFExporter(HTMLExporter):
+class PDFExporter(TemplateExporter):
     """Convert a notebook to a PDF
 
     Expose this package's functionality to nbconvert
     """
 
+    enabled = True
     # a thread pool to run our async event loop. We use our own
     # because `from_notebook_node` isn't async but sometimes is called
     # inside a tornado app that already has an event loop
     pool = concurrent.futures.ThreadPoolExecutor()
 
     export_from_notebook = "PDF via HTML"
-    output_mimetype = "application/pdf"
-    no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(
-        config=True
-    )
 
     @default("file_extension")
     def _file_extension_default(self):
         return ".pdf"
 
-    def __init__(self, config=None, **kw):
-        with_default_config = self.default_config
-        if config:
-            with_default_config.merge(config)
+    # make sure the HTML template is used even though we are using .pdf as
+    # file extension
+    template_extension = ".html.j2"
 
-        super().__init__(config=with_default_config, **kw)
+    # This value is used to inform browsers about the mimetype of the file
+    # when people download the file we generated
+    output_mimetype = "application/pdf"
+
+    no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(config=True)
 
     def from_notebook_node(self, notebook, resources=None, **kwargs):
-        html_notebook, resources = super().from_notebook_node(
+        html_exporter = HTMLExporter(config=self.config, parent=self)
+        html_notebook, resources = html_exporter.from_notebook_node(
             notebook, resources=resources, **kwargs
         )
 
@@ -220,9 +235,7 @@ class PDFExporter(HTMLExporter):
             heading_positions = self.pool.submit(
                 asyncio.run,
                 notebook_to_pdf(
-                    html_notebook,
-                    pdf_fname,
-                    pyppeteer_args=pyppeteer_args,
+                    html_notebook, pdf_fname, pyppeteer_args=pyppeteer_args,
                 ),
             ).result()
             resources["output_extension"] = ".pdf"
@@ -239,5 +252,9 @@ class PDFExporter(HTMLExporter):
 
             with open(pdf_fname2, "rb") as f:
                 pdf_bytes = f.read()
+
+        # This sets the mimetype to what we really want (PDF) after all the
+        # template loading is over (for which it needs to be set to HTML)
+        self.output_mimetype = "application/pdf"
 
         return (pdf_bytes, resources)

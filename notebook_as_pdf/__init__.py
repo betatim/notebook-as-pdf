@@ -188,7 +188,7 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
             None,
         )
         for remaining_num in range(parent_num, 6):
-            parent_map[parent_num] = parent
+            parent_map[remaining_num] = parent
 
     with open(pdf_out, "wb") as fp:
         pdf.write(fp)

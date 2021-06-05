@@ -117,14 +117,24 @@ async def html_to_pdf(html_file, pdf_file, pyppeteer_args=None):
         }
     )
 
+    # TODO: args to set visible tag
     headings = await page.evaluate(
         """() => {
         var vals = []
         for (const elem of document.getElementsByTagName("h1")) {
-            vals.push({ top: getOffset(elem).top * (1-72/288), text: elem.innerText })
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "[_|1|_]" + elem.innerText })
         }
         for (const elem of document.getElementsByTagName("h2")) {
-            vals.push({ top: getOffset(elem).top * (1-72/288), text: "∙ " + elem.innerText })
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "[_|2|_]" + elem.innerText })
+        }
+        for (const elem of document.getElementsByTagName("h3")) {
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "[_|3|_]" + elem.innerText })
+        }
+        for (const elem of document.getElementsByTagName("h4")) {
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "[_|4|_]" + elem.innerText })
+        }
+        for (const elem of document.getElementsByTagName("h5")) {
+            vals.push({ top: getOffset(elem).top * (1-72/288), text: "[_|5|_]" + elem.innerText })
         }
         return vals
     }"""
@@ -147,6 +157,8 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
     pdf.appendPagesFromReader(PyPDF2.PdfFileReader(pdf_in, "rb"))
     pdf.addAttachment(notebook["file_name"], notebook["contents"])
 
+    parent_map = {0: None, 1: None, 2: None, 3: None, 4: None, 5: None}
+
     for heading in sorted(headings, key=lambda x: x["top"]):
         page_num = int(heading["top"]) // (200 * 72)
 
@@ -160,10 +172,13 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
         # there is no nice way of passing the "zoom arguments" at the very
         # end of the function call without explicitly listing all the parameters
         # of the function. We can't use keyword arguments :(
-        pdf.addBookmark(
-            heading["text"],
+        parent_num = int(heading["text"].split("|_]")[0].split("[_|")[1])
+        title = heading["text"].split("|_]")[1]
+
+        parent = pdf.addBookmark(
+            title,
             page_num,
-            None,
+            parent_map[parent_num - 1],
             None,
             False,
             False,
@@ -172,13 +187,17 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
             on_page_pos,
             None,
         )
+        for remaining_num in range(parent_num, 6):
+            parent_map[parent_num] = parent
 
     with open(pdf_out, "wb") as fp:
         pdf.write(fp)
 
 
 async def notebook_to_pdf(
-    html_notebook, pdf_path, pyppeteer_args=None,
+    html_notebook,
+    pdf_path,
+    pyppeteer_args=None,
 ):
     """Convert HTML representation of a notebook to PDF"""
     with tempfile.NamedTemporaryFile(suffix=".html") as f:
@@ -215,7 +234,10 @@ class PDFExporter(TemplateExporter):
     # when people download the file we generated
     output_mimetype = "application/pdf"
 
-    no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(config=True)
+    no_sandbox = Bool(
+        True,
+        help=("Disable chrome sandboxing."),
+    ).tag(config=True)
 
     def from_notebook_node(self, notebook, resources=None, **kwargs):
         html_exporter = HTMLExporter(config=self.config, parent=self)
@@ -235,7 +257,9 @@ class PDFExporter(TemplateExporter):
             heading_positions = self.pool.submit(
                 asyncio.run,
                 notebook_to_pdf(
-                    html_notebook, pdf_fname, pyppeteer_args=pyppeteer_args,
+                    html_notebook,
+                    pdf_fname,
+                    pyppeteer_args=pyppeteer_args,
                 ),
             ).result()
             resources["output_extension"] = ".pdf"

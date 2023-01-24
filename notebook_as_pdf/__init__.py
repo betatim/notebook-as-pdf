@@ -143,34 +143,16 @@ def finish_pdf(pdf_in, pdf_out, notebook, headings):
     * attach the original notebook to the PDF for reference
     * add bookmarks pointing to the headers in a notebook
     """
-    pdf = PyPDF2.PdfFileWriter()
-    pdf.appendPagesFromReader(PyPDF2.PdfFileReader(pdf_in, "rb"))
-    pdf.addAttachment(notebook["file_name"], notebook["contents"])
+    pdf = PyPDF2.PdfWriter()
+    pdf.append_pages_from_reader(PyPDF2.PdfReader(pdf_in))
+    pdf.add_attachment(notebook["file_name"], notebook["contents"])
 
     for heading in sorted(headings, key=lambda x: x["top"]):
         page_num = int(heading["top"]) // (200 * 72)
 
-        page_height = pdf.getPage(page_num).artBox[-1]
-
-        # position on the page as measured from the bottom of the page
-        # with a bit of leeway so that clicking the bookmark doesn't put
-        # the heading right at the border
-        on_page_pos = page_height - (int(heading["top"]) % (200 * 72)) + 20
-
-        # there is no nice way of passing the "zoom arguments" at the very
-        # end of the function call without explicitly listing all the parameters
-        # of the function. We can't use keyword arguments :(
-        pdf.addBookmark(
+        pdf.add_outline_item(
             heading["text"],
-            page_num,
-            None,
-            None,
-            False,
-            False,
-            "/XYZ",
-            0,
-            on_page_pos,
-            None,
+            page_number=page_num
         )
 
     with open(pdf_out, "wb") as fp:

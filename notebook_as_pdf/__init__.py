@@ -200,7 +200,7 @@ class PDFExporter(TemplateExporter):
     no_sandbox = Bool(True, help=("Disable chrome sandboxing."),).tag(config=True)
 
     def from_notebook_node(self, notebook, resources=None, **kwargs):
-        html_exporter = HTMLExporter(config=self.config, parent=self)
+        html_exporter = HTMLExporter(config=self.config, parent=self, embed_images=True)
         html_notebook, resources = html_exporter.from_notebook_node(
             notebook, resources=resources, **kwargs
         )
